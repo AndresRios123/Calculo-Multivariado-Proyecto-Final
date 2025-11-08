@@ -1,4 +1,4 @@
-﻿// Utilidades generales -------------------------------------------------------
+// Utilidades generales -------------------------------------------------------
 const tabs = document.querySelectorAll(".tab-button");
 const sections = document.querySelectorAll("[role=tabpanel]");
 
@@ -10,39 +10,51 @@ const randomExamples = [
     "sin(x) + y^3 - 2"
 ];
 
+const PLACEHOLDER = "\u25a2";
+
 const mathSymbols = [
-    { label: "□²", insert: "^2" },
-    { label: "xⁿ", insert: "x^" },
-    { label: "√□", insert: "sqrt()", cursorOffset: -1 },
-    { label: "∛□", insert: "cbrt()", cursorOffset: -1 },
-    { label: "ⁿ√□", insert: "nthRoot(, )", cursorOffset: -3 },
-    { label: "□/□", insert: "()/()", cursorOffset: -3 },
-    { label: "log", insert: "log10()", cursorOffset: -1 },
-    { label: "ln", insert: "log()", cursorOffset: -1 },
-    { label: "π", insert: "pi" },
-    { label: "θ", insert: "theta" },
-    { label: "∞", insert: "Infinity" },
-    { label: "∫", insert: "integral( , x)", cursorOffset: -6, hint: "Plantilla integral" },
-    { label: "d/dx", insert: "derivative( , x)", cursorOffset: -6 },
-    { label: "≥", insert: ">=" },
-    { label: "≤", insert: "<=" },
-    { label: "≠", insert: "!=" },
-    { label: "·", insert: "*" },
-    { label: "÷", insert: "/" },
-    { label: "x°", insert: "*pi/180" },
-    { label: "( )", insert: "()", cursorOffset: -1 },
-    { label: "[ ]", insert: "[]", cursorOffset: -1 },
-    { label: "|□|", insert: "abs()", cursorOffset: -1 },
-    { label: "f(x)", insert: "f(x)" },
-    { label: "e^□", insert: "exp()", cursorOffset: -1 },
-    { label: "Σ", insert: "sum( , )", cursorOffset: -3 },
-    { label: "sin", insert: "sin()", cursorOffset: -1 },
-    { label: "cos", insert: "cos()", cursorOffset: -1 },
-    { label: "tan", insert: "tan()", cursorOffset: -1 },
-    { label: "cot", insert: "cot()", cursorOffset: -1 },
-    { label: "csc", insert: "csc()", cursorOffset: -1 },
-    { label: "sec", insert: "sec()", cursorOffset: -1 }
+    { label: "\u25a1\u00b2", insert: `${PLACEHOLDER}\u00b2`, hint: "Potencia" },
+    { label: "x\u00b2", insert: "x\u00b2" },
+    { label: "\u221a\u25a1", insert: `\u221a(${PLACEHOLDER})`, hint: "Ra\u00edz cuadrada" },
+    { label: "\u221b\u25a1", insert: `\u221b(${PLACEHOLDER})`, hint: "Ra\u00edz c\u00fabica" },
+    { label: "\u207f\u221a\u25a1", insert: `\u207f\u221a(${PLACEHOLDER},${PLACEHOLDER})`, hint: "Ra\u00edz n-\u00e9sima" },
+    { label: "\u25a1/\u25a1", insert: `(${PLACEHOLDER})/(${PLACEHOLDER})` },
+    { label: "log\u25a1", insert: `log(${PLACEHOLDER})` },
+    { label: "ln\u25a1", insert: `ln(${PLACEHOLDER})` },
+    { label: "\u03c0", insert: "\u03c0" },
+    { label: "\u03b8", insert: "\u03b8" },
+    { label: "\u221e", insert: "\u221e" },
+    { label: "|\u25a1|", insert: `|${PLACEHOLDER}|`, hint: "Valor absoluto" },
+    { label: "x\u00b0", insert: `${PLACEHOLDER}\u00b0` },
+    { label: "\u2265", insert: "\u2265" },
+    { label: "\u2264", insert: "\u2264" },
+    { label: "\u2260", insert: "\u2260" },
+    { label: "\u00b7", insert: "\u00b7" },
+    { label: "\u00f7", insert: "\u00f7" },
+    { label: "\u03a3", insert: `\u2211(${PLACEHOLDER})`, hint: "Sumatoria" },
+    { label: "\u222b", insert: `\u222b(${PLACEHOLDER}) d${PLACEHOLDER}`, hint: "Integral" },
+    { label: "d/dx", insert: `d/dx(${PLACEHOLDER})`, hint: "Derivada" },
+    { label: "f(x)", insert: `f(${PLACEHOLDER})` },
+    { label: "sin", insert: `sin(${PLACEHOLDER})` },
+    { label: "cos", insert: `cos(${PLACEHOLDER})` },
+    { label: "tan", insert: `tan(${PLACEHOLDER})` },
+    { label: "cot", insert: `cot(${PLACEHOLDER})` },
+    { label: "csc", insert: `csc(${PLACEHOLDER})` },
+    { label: "sec", insert: `sec(${PLACEHOLDER})` }
 ];
+
+const superscriptMap = {
+    "\u2070": "0",
+    "\u00b9": "1",
+    "\u00b2": "2",
+    "\u00b3": "3",
+    "\u2074": "4",
+    "\u2075": "5",
+    "\u2076": "6",
+    "\u2077": "7",
+    "\u2078": "8",
+    "\u2079": "9"
+};
 
 let activeExpressionField = null;
 
@@ -80,6 +92,77 @@ const evaluateCompiled = (compiled, scope) => {
     } catch (error) {
         return null;
     }
+};
+
+const convertAbsoluteBars = (expr) => {
+    let result = "";
+    let i = 0;
+    while (i < expr.length) {
+        if (expr[i] === "|") {
+            const end = expr.indexOf("|", i + 1);
+            if (end !== -1) {
+                const inner = expr.slice(i + 1, end);
+                result += `abs(${inner})`;
+                i = end + 1;
+            } else {
+                result += "|";
+                i += 1;
+            }
+        } else {
+            result += expr[i];
+            i += 1;
+        }
+    }
+    return result;
+};
+
+const stripIntegralNotation = (expr) =>
+    expr.replace(/\u222b\(([^)]+)\)\s*d([a-zA-Z]|\u25a2)/g, (_, inner) => {
+        return `(${inner})`;
+    });
+
+const convertDerivatives = (expr) =>
+    expr.replace(/d\/d([a-zA-Z]|\u25a2)\s*\(([^)]+)\)/g, (_, variable, inner) => {
+        const varName = variable === PLACEHOLDER ? "x" : variable;
+        return `derivative(${inner}, ${varName})`;
+    });
+
+const convertDegreeNotation = (expr) =>
+    expr.replace(/([0-9.]+|[a-zA-Z]+)\u00b0/g, (_, value) => `${value}*pi/180`);
+
+const normalizeExpression = (value = "") => {
+    if (!value) return "";
+    let expr = value.trim();
+    expr = convertDerivatives(expr);
+    expr = stripIntegralNotation(expr);
+    expr = convertAbsoluteBars(expr);
+    expr = expr.replace(new RegExp(PLACEHOLDER, "g"), "");
+    expr = expr.replace(/\u25a1/g, "");
+    expr = convertDegreeNotation(expr);
+    expr = expr.replace(/\u207f\u221a/g, "nthRoot");
+    expr = expr.replace(/\u221b/g, "cbrt");
+    expr = expr.replace(/\u221a/g, "sqrt");
+    expr = expr.replace(/[\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079]/g, (char) => `^${superscriptMap[char] || ""}`);
+
+    const replacements = [
+        { regex: /\u03c0/g, value: "pi" },
+        { regex: /\u03b8/g, value: "theta" },
+        { regex: /\u221e/g, value: "Infinity" },
+        { regex: /\u2211/g, value: "sum" },
+        { regex: /\u00d7/g, value: "*" },
+        { regex: /\u00b7/g, value: "*" },
+        { regex: /\u00f7/g, value: "/" },
+        { regex: /\u2265/g, value: ">=" },
+        { regex: /\u2264/g, value: "<=" },
+        { regex: /\u2260/g, value: "!=" }
+    ];
+
+    replacements.forEach(({ regex, value }) => {
+        expr = expr.replace(regex, value);
+    });
+
+    expr = expr.replace(/\s+/g, " ").trim();
+    return expr;
 };
 
 const analyzeGrid = (grid, xValues, yValues) => {
@@ -121,16 +204,16 @@ const showDomainRange = (stats, zParam = null) => {
     const rangeNode = document.getElementById("range-output");
 
     if (!stats.hasData) {
-        domainNode.textContent = "Sin puntos validos en el rango evaluado.";
+        domainNode.textContent = "Sin puntos v\u00e1lidos en el rango evaluado.";
         rangeNode.textContent = "-";
         return;
     }
 
-    domainNode.textContent = `x ∈ [${formatNumber(stats.x[0])}, ${formatNumber(stats.x[1])}], y ∈ [${formatNumber(stats.y[0])}, ${formatNumber(stats.y[1])}]${zParam !== null ? `, z fijo = ${formatNumber(zParam)}` : ""}`;
-    rangeNode.textContent = `f(x, y) ∈ [${formatNumber(stats.z[0])}, ${formatNumber(stats.z[1])}]`;
+    domainNode.textContent = `x \u2208 [${formatNumber(stats.x[0])}, ${formatNumber(stats.x[1])}], y \u2208 [${formatNumber(stats.y[0])}, ${formatNumber(stats.y[1])}]${zParam !== null ? `, z fijo = ${formatNumber(zParam)}` : ""}`;
+    rangeNode.textContent = `f(x, y) \u2208 [${formatNumber(stats.z[0])}, ${formatNumber(stats.z[1])}]`;
 };
 
-const insertTextAtCursor = (snippet, cursorOffset = 0) => {
+const insertTextAtCursor = (snippet) => {
     if (!activeExpressionField) return;
     const field = activeExpressionField;
     const start = field.selectionStart ?? field.value.length;
@@ -138,10 +221,16 @@ const insertTextAtCursor = (snippet, cursorOffset = 0) => {
     const before = field.value.slice(0, start);
     const after = field.value.slice(end);
     field.value = `${before}${snippet}${after}`;
-    const newPos = start + snippet.length + cursorOffset;
-    if (typeof field.setSelectionRange === "function") {
-        field.setSelectionRange(newPos, newPos);
+
+    const placeholderIndex = snippet.indexOf(PLACEHOLDER);
+    if (placeholderIndex >= 0) {
+        const pos = start + placeholderIndex;
+        field.setSelectionRange(pos, pos + 1);
+    } else {
+        const pos = start + snippet.length;
+        field.setSelectionRange(pos, pos);
     }
+
     field.focus();
     field.dispatchEvent(new Event("input", { bubbles: true }));
 };
@@ -150,8 +239,8 @@ const setupMathKeyboard = () => {
     const keyboard = document.getElementById("math-keyboard");
     if (!keyboard) return;
 
-    const editable = document.querySelectorAll("textarea, input[type='text']");
-    activeExpressionField = document.getElementById("function-input") || editable[0] || null;
+    const editable = document.querySelectorAll("[data-math-input]");
+    activeExpressionField = editable[0] || null;
 
     editable.forEach((field) => {
         field.addEventListener("focus", () => {
@@ -164,11 +253,9 @@ const setupMathKeyboard = () => {
         button.type = "button";
         button.className = "math-key";
         button.textContent = symbol.label;
-        button.title = symbol.hint || `Inserta ${symbol.insert}`;
+        if (symbol.hint) button.title = symbol.hint;
         button.addEventListener("mousedown", (event) => event.preventDefault());
-        button.addEventListener("click", () => {
-            insertTextAtCursor(symbol.insert, symbol.cursorOffset || 0);
-        });
+        button.addEventListener("click", () => insertTextAtCursor(symbol.insert));
         keyboard.appendChild(button);
     });
 };
@@ -184,12 +271,18 @@ tabs.forEach((button) => {
     });
 });
 
-// Visualizacion --------------------------------------------------------------
+// Visualizaci\u00f3n --------------------------------------------------------------
 const plotButton = document.getElementById("plot-btn");
 const randomButton = document.getElementById("random-example-btn");
 
 const plotFunction = () => {
-    const expression = document.getElementById("function-input").value.trim();
+    const expressionRaw = document.getElementById("function-input").value.trim();
+    const expression = normalizeExpression(expressionRaw);
+    if (!expression) {
+        alert("Ingresa una funci\u00f3n para graficar.");
+        return;
+    }
+
     const resolution = Math.max(10, Number(document.getElementById("resolution").value) || 35);
     const xMin = Number(document.getElementById("x-min").value) || -5;
     const xMax = Number(document.getElementById("x-max").value) || 5;
@@ -226,7 +319,7 @@ const plotFunction = () => {
         }];
 
         Plotly.newPlot("plot-visual", data, {
-            title: hasZ ? `Grafica de f(x, y, z=${formatNumber(zParam, 2)})` : "Grafica de f(x, y)",
+            title: hasZ ? `Gr\u00e1fica de f(x, y, z=${formatNumber(zParam, 2)})` : "Gr\u00e1fica de f(x, y)",
             paper_bgcolor: "rgba(0,0,0,0)",
             plot_bgcolor: "rgba(0,0,0,0)",
             scene: {
@@ -236,7 +329,7 @@ const plotFunction = () => {
             }
         }, { responsive: true });
     } catch (error) {
-        alert("No se pudo graficar la funcion. Revisa la sintaxis.");
+        alert("No se pudo graficar la funci\u00f3n. Revisa la sintaxis.");
         console.error(error);
     }
 };
@@ -244,9 +337,10 @@ const plotFunction = () => {
 plotButton.addEventListener("click", plotFunction);
 randomButton.addEventListener("click", () => {
     const choice = randomExamples[Math.floor(Math.random() * randomExamples.length)];
-    document.getElementById("function-input").value = choice;
-    document.getElementById("derivative-function").value = choice;
-    document.getElementById("integral-function").value = choice;
+    ["function-input", "derivative-function", "integral-function"].forEach((id) => {
+        const node = document.getElementById(id);
+        if (node) node.value = choice;
+    });
     plotFunction();
 });
 
@@ -254,7 +348,14 @@ randomButton.addEventListener("click", () => {
 const derivativeButton = document.getElementById("derivative-btn");
 
 const showDerivatives = () => {
-    const expression = document.getElementById("derivative-function").value.trim();
+    const expressionRaw = document.getElementById("derivative-function").value.trim();
+    const expression = normalizeExpression(expressionRaw);
+    if (!expression) {
+        document.getElementById("partials-output").textContent = "Ingresa una funci\u00f3n.";
+        document.getElementById("gradient-output").textContent = "-";
+        return;
+    }
+
     const x0 = Number(document.getElementById("point-x").value) || 0;
     const y0 = Number(document.getElementById("point-y").value) || 0;
     const z0 = Number(document.getElementById("point-z").value) || 0;
@@ -266,7 +367,7 @@ const showDerivatives = () => {
             derivative: math.derivative(expression, variable).toString()
         }));
 
-        const partialsText = partials.map((p) => `∂f/∂${p.variable} = ${p.derivative}`).join("\n");
+        const partialsText = partials.map((p) => `\u2202f/\u2202${p.variable} = ${p.derivative}`).join("\n");
         document.getElementById("partials-output").textContent = partialsText || "-";
 
         const scope = { x: x0, y: y0, z: z0 };
@@ -275,10 +376,10 @@ const showDerivatives = () => {
             return evaluateCompiled(compiledPartial, scope);
         });
 
-        const gradientText = `∇f(${x0}, ${y0}${variables.includes("z") ? ", " + z0 : ""}) = ⟨${gradientValues.map((val) => formatNumber(val || 0)).join(", ")}⟩`;
+        const gradientText = `\u2207f(${x0}, ${y0}${variables.includes("z") ? ", " + z0 : ""}) = \u27e8${gradientValues.map((val) => formatNumber(val || 0)).join(", ")}\u27e9`;
         document.getElementById("gradient-output").textContent = gradientText;
     } catch (error) {
-        document.getElementById("partials-output").textContent = "No se pudo derivar la funcion.";
+        document.getElementById("partials-output").textContent = "No se pudo derivar la funci\u00f3n.";
         document.getElementById("gradient-output").textContent = "-";
         console.error(error);
     }
@@ -286,7 +387,7 @@ const showDerivatives = () => {
 
 derivativeButton.addEventListener("click", showDerivatives);
 
-// Integrales multiples -------------------------------------------------------
+// Integrales m\u00faltiples -------------------------------------------------------
 const integralButton = document.getElementById("integral-btn");
 
 const evaluateIntegrand = (compiled, scope) => {
@@ -342,19 +443,20 @@ const renderIntegralPlot = (type, compiled, bounds) => {
                 colorscale: "Magma",
                 showscale: true
             }], {
-                title: "Integrando sobre la region",
+                title: "Integrando sobre la regi\u00f3n",
                 paper_bgcolor: "rgba(0,0,0,0)",
                 plot_bgcolor: "rgba(0,0,0,0)"
             }, { responsive: true });
         } else {
-            const samples = 25;
-            const points = [];
-            for (let i = 0; i < samples; i++) {
+            const samples = 35;
+            const points = Array.from({ length: samples }, () => {
                 const sx = bounds.x[0] + Math.random() * (bounds.x[1] - bounds.x[0]);
                 const sy = bounds.y[0] + Math.random() * (bounds.y[1] - bounds.y[0]);
                 const sz = bounds.z[0] + Math.random() * (bounds.z[1] - bounds.z[0]);
-                points.push({ x: sx, y: sy, z: sz, value: evaluateCompiled(compiled, { x: sx, y: sy, z: sz }) });
-            }
+                const value = evaluateCompiled(compiled, { x: sx, y: sy, z: sz });
+                return { x: sx, y: sy, z: sz, value };
+            });
+
             Plotly.newPlot("plot-integral", [{
                 type: "scatter3d",
                 mode: "markers",
@@ -379,7 +481,13 @@ const renderIntegralPlot = (type, compiled, bounds) => {
 };
 
 const approximateIntegral = () => {
-    const expression = document.getElementById("integral-function").value.trim();
+    const expressionRaw = document.getElementById("integral-function").value.trim();
+    const expression = normalizeExpression(expressionRaw);
+    if (!expression) {
+        document.getElementById("integral-output").textContent = "Ingresa un integrando.";
+        return;
+    }
+
     const type = document.getElementById("integral-type").value;
     const subdivisions = Math.max(5, Number(document.getElementById("integral-resolution").value) || 20);
     const bounds = {
@@ -394,7 +502,7 @@ const approximateIntegral = () => {
             ? approximateDoubleIntegral(compiled, bounds, subdivisions)
             : approximateTripleIntegral(compiled, bounds, subdivisions);
 
-        document.getElementById("integral-output").textContent = `≈ ${formatNumber(result, 6)}`;
+        document.getElementById("integral-output").textContent = `\u2248 ${formatNumber(result, 6)}`;
         renderIntegralPlot(type, compiled, bounds);
     } catch (error) {
         document.getElementById("integral-output").textContent = "No se pudo evaluar la integral.";
@@ -404,7 +512,7 @@ const approximateIntegral = () => {
 
 integralButton.addEventListener("click", approximateIntegral);
 
-// Optimizacion con restricciones --------------------------------------------
+// Optimizaci\u00f3n con restricciones --------------------------------------------
 const optimizeButton = document.getElementById("optimize-btn");
 
 const gaussianSolve = (matrix, vector) => {
@@ -462,7 +570,7 @@ const newtonSystem = (fn, initialGuess, maxIterations = 30, tolerance = 1e-6) =>
         const delta = gaussianSolve(J, F.map((value) => -value));
         vars = vars.map((value, idx) => value + delta[idx]);
     }
-    throw new Error("Newton no convergio");
+    throw new Error("Newton no convergi\u00f3");
 };
 
 const solveLagrange = ({ objective, constraint, constant, initial }) => {
@@ -534,25 +642,33 @@ const renderOptimizationPlot = (objective, constraint, constant, solution) => {
                 y: [solution.y],
                 mode: "markers",
                 marker: { size: 12, color: "#22d3ee" },
-                name: "Optimo"
+                name: "\u00d3ptimo"
             });
         }
 
         Plotly.newPlot("plot-optimization", data, {
-            title: "Nivel de f(x, y) y restriccion",
+            title: "Nivel de f(x, y) y restricci\u00f3n",
             paper_bgcolor: "rgba(0,0,0,0)",
             plot_bgcolor: "rgba(0,0,0,0)",
             xaxis: { title: "x" },
             yaxis: { title: "y" }
         }, { responsive: true });
     } catch (error) {
-        console.error("No se pudo graficar la optimizacion", error);
+        console.error("No se pudo graficar la optimizaci\u00f3n", error);
     }
 };
 
 const runOptimization = () => {
-    const objective = document.getElementById("objective-input").value.trim();
-    const constraint = document.getElementById("constraint-input").value.trim();
+    const objectiveRaw = document.getElementById("objective-input").value.trim();
+    const constraintRaw = document.getElementById("constraint-input").value.trim();
+    const objective = normalizeExpression(objectiveRaw);
+    const constraint = normalizeExpression(constraintRaw);
+
+    if (!objective || !constraint) {
+        document.getElementById("optimum-output").textContent = "Ingresa f y g.";
+        return;
+    }
+
     const constant = Number(document.getElementById("constraint-value").value) || 0;
     const initial = {
         x: Number(document.getElementById("opt-x0").value) || 0,
@@ -566,10 +682,10 @@ const runOptimization = () => {
         document.getElementById("optimum-value-output").textContent = formatNumber(solution.value);
         renderOptimizationPlot(objective, constraint, constant, solution);
     } catch (error) {
-        document.getElementById("optimum-output").textContent = "No convergio";
+        document.getElementById("optimum-output").textContent = "No convergi\u00f3";
         document.getElementById("lambda-output").textContent = "-";
         document.getElementById("optimum-value-output").textContent = "-";
-        alert("El metodo de Newton no convergio. Intenta con otros valores iniciales.");
+        alert("El m\u00e9todo de Newton no convergi\u00f3. Intenta con otros valores iniciales.");
         console.error(error);
         renderOptimizationPlot(objective, constraint, constant, null);
     }
@@ -577,13 +693,13 @@ const runOptimization = () => {
 
 optimizeButton.addEventListener("click", runOptimization);
 
-// Inicializacion -------------------------------------------------------------
+// Inicializaci\u00f3n -------------------------------------------------------------
 setupMathKeyboard();
 plotFunction();
 showDerivatives();
 renderOptimizationPlot(
-    document.getElementById("objective-input").value,
-    document.getElementById("constraint-input").value,
+    normalizeExpression(document.getElementById("objective-input").value),
+    normalizeExpression(document.getElementById("constraint-input").value),
     Number(document.getElementById("constraint-value").value) || 0,
     null
 );
