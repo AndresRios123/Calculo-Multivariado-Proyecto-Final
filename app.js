@@ -1,4 +1,4 @@
-// Utilidades generales -------------------------------------------------------
+ï»¿// Utilidades generales -------------------------------------------------------
 const tabs = document.querySelectorAll(".tab-button");
 const sections = document.querySelectorAll("[role=tabpanel]");
 
@@ -9,6 +9,42 @@ const randomExamples = [
     "x * y + z",
     "sin(x) + y^3 - 2"
 ];
+
+const mathSymbols = [
+    { label: "â–¡Â²", insert: "^2" },
+    { label: "xâ¿", insert: "x^" },
+    { label: "âˆšâ–¡", insert: "sqrt()", cursorOffset: -1 },
+    { label: "âˆ›â–¡", insert: "cbrt()", cursorOffset: -1 },
+    { label: "â¿âˆšâ–¡", insert: "nthRoot(, )", cursorOffset: -3 },
+    { label: "â–¡/â–¡", insert: "()/()", cursorOffset: -3 },
+    { label: "log", insert: "log10()", cursorOffset: -1 },
+    { label: "ln", insert: "log()", cursorOffset: -1 },
+    { label: "Ï€", insert: "pi" },
+    { label: "Î¸", insert: "theta" },
+    { label: "âˆž", insert: "Infinity" },
+    { label: "âˆ«", insert: "integral( , x)", cursorOffset: -6, hint: "Plantilla integral" },
+    { label: "d/dx", insert: "derivative( , x)", cursorOffset: -6 },
+    { label: "â‰¥", insert: ">=" },
+    { label: "â‰¤", insert: "<=" },
+    { label: "â‰ ", insert: "!=" },
+    { label: "Â·", insert: "*" },
+    { label: "Ã·", insert: "/" },
+    { label: "xÂ°", insert: "*pi/180" },
+    { label: "( )", insert: "()", cursorOffset: -1 },
+    { label: "[ ]", insert: "[]", cursorOffset: -1 },
+    { label: "|â–¡|", insert: "abs()", cursorOffset: -1 },
+    { label: "f(x)", insert: "f(x)" },
+    { label: "e^â–¡", insert: "exp()", cursorOffset: -1 },
+    { label: "Î£", insert: "sum( , )", cursorOffset: -3 },
+    { label: "sin", insert: "sin()", cursorOffset: -1 },
+    { label: "cos", insert: "cos()", cursorOffset: -1 },
+    { label: "tan", insert: "tan()", cursorOffset: -1 },
+    { label: "cot", insert: "cot()", cursorOffset: -1 },
+    { label: "csc", insert: "csc()", cursorOffset: -1 },
+    { label: "sec", insert: "sec()", cursorOffset: -1 }
+];
+
+let activeExpressionField = null;
 
 const formatNumber = (value, digits = 4) => {
     if (!Number.isFinite(value)) return "NaN";
@@ -85,13 +121,56 @@ const showDomainRange = (stats, zParam = null) => {
     const rangeNode = document.getElementById("range-output");
 
     if (!stats.hasData) {
-        domainNode.textContent = "Sin puntos válidos en el rango evaluado.";
+        domainNode.textContent = "Sin puntos validos en el rango evaluado.";
         rangeNode.textContent = "-";
         return;
     }
 
-    domainNode.textContent = `x ? [${formatNumber(stats.x[0])}, ${formatNumber(stats.x[1])}], y ? [${formatNumber(stats.y[0])}, ${formatNumber(stats.y[1])}]${zParam !== null ? `, z fijo = ${formatNumber(zParam)}` : ""}`;
-    rangeNode.textContent = `f(x, y) ? [${formatNumber(stats.z[0])}, ${formatNumber(stats.z[1])}]`;
+    domainNode.textContent = `x âˆˆ [${formatNumber(stats.x[0])}, ${formatNumber(stats.x[1])}], y âˆˆ [${formatNumber(stats.y[0])}, ${formatNumber(stats.y[1])}]${zParam !== null ? `, z fijo = ${formatNumber(zParam)}` : ""}`;
+    rangeNode.textContent = `f(x, y) âˆˆ [${formatNumber(stats.z[0])}, ${formatNumber(stats.z[1])}]`;
+};
+
+const insertTextAtCursor = (snippet, cursorOffset = 0) => {
+    if (!activeExpressionField) return;
+    const field = activeExpressionField;
+    const start = field.selectionStart ?? field.value.length;
+    const end = field.selectionEnd ?? start;
+    const before = field.value.slice(0, start);
+    const after = field.value.slice(end);
+    field.value = `${before}${snippet}${after}`;
+    const newPos = start + snippet.length + cursorOffset;
+    if (typeof field.setSelectionRange === "function") {
+        field.setSelectionRange(newPos, newPos);
+    }
+    field.focus();
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+};
+
+const setupMathKeyboard = () => {
+    const keyboard = document.getElementById("math-keyboard");
+    if (!keyboard) return;
+
+    const editable = document.querySelectorAll("textarea, input[type='text']");
+    activeExpressionField = document.getElementById("function-input") || editable[0] || null;
+
+    editable.forEach((field) => {
+        field.addEventListener("focus", () => {
+            activeExpressionField = field;
+        });
+    });
+
+    mathSymbols.forEach((symbol) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "math-key";
+        button.textContent = symbol.label;
+        button.title = symbol.hint || `Inserta ${symbol.insert}`;
+        button.addEventListener("mousedown", (event) => event.preventDefault());
+        button.addEventListener("click", () => {
+            insertTextAtCursor(symbol.insert, symbol.cursorOffset || 0);
+        });
+        keyboard.appendChild(button);
+    });
 };
 
 // Tabs -----------------------------------------------------------------------
@@ -105,7 +184,7 @@ tabs.forEach((button) => {
     });
 });
 
-// Visualización --------------------------------------------------------------
+// Visualizacion --------------------------------------------------------------
 const plotButton = document.getElementById("plot-btn");
 const randomButton = document.getElementById("random-example-btn");
 
@@ -147,7 +226,7 @@ const plotFunction = () => {
         }];
 
         Plotly.newPlot("plot-visual", data, {
-            title: hasZ ? `Gráfica de f(x, y, z=${formatNumber(zParam, 2)})` : "Gráfica de f(x, y)",
+            title: hasZ ? `Grafica de f(x, y, z=${formatNumber(zParam, 2)})` : "Grafica de f(x, y)",
             paper_bgcolor: "rgba(0,0,0,0)",
             plot_bgcolor: "rgba(0,0,0,0)",
             scene: {
@@ -157,7 +236,7 @@ const plotFunction = () => {
             }
         }, { responsive: true });
     } catch (error) {
-        alert("No se pudo graficar la función. Revisa la sintaxis.");
+        alert("No se pudo graficar la funcion. Revisa la sintaxis.");
         console.error(error);
     }
 };
@@ -167,6 +246,7 @@ randomButton.addEventListener("click", () => {
     const choice = randomExamples[Math.floor(Math.random() * randomExamples.length)];
     document.getElementById("function-input").value = choice;
     document.getElementById("derivative-function").value = choice;
+    document.getElementById("integral-function").value = choice;
     plotFunction();
 });
 
@@ -181,13 +261,12 @@ const showDerivatives = () => {
 
     try {
         const variables = detectVariables(expression);
-        const compiled = math.compile(expression);
         const partials = variables.map((variable) => ({
             variable,
             derivative: math.derivative(expression, variable).toString()
         }));
 
-        const partialsText = partials.map((p) => `?f/?${p.variable} = ${p.derivative}`).join("\n");
+        const partialsText = partials.map((p) => `âˆ‚f/âˆ‚${p.variable} = ${p.derivative}`).join("\n");
         document.getElementById("partials-output").textContent = partialsText || "-";
 
         const scope = { x: x0, y: y0, z: z0 };
@@ -196,10 +275,10 @@ const showDerivatives = () => {
             return evaluateCompiled(compiledPartial, scope);
         });
 
-        const gradientText = `?f(${x0}, ${y0}${variables.includes("z") ? ", " + z0 : ""}) = ?${gradientValues.map((val) => formatNumber(val || 0)).join(", ")}?`;
+        const gradientText = `âˆ‡f(${x0}, ${y0}${variables.includes("z") ? ", " + z0 : ""}) = âŸ¨${gradientValues.map((val) => formatNumber(val || 0)).join(", ")}âŸ©`;
         document.getElementById("gradient-output").textContent = gradientText;
     } catch (error) {
-        document.getElementById("partials-output").textContent = "No se pudo derivar la función.";
+        document.getElementById("partials-output").textContent = "No se pudo derivar la funcion.";
         document.getElementById("gradient-output").textContent = "-";
         console.error(error);
     }
@@ -207,7 +286,7 @@ const showDerivatives = () => {
 
 derivativeButton.addEventListener("click", showDerivatives);
 
-// Integrales múltiples -------------------------------------------------------
+// Integrales multiples -------------------------------------------------------
 const integralButton = document.getElementById("integral-btn");
 
 const evaluateIntegrand = (compiled, scope) => {
@@ -263,7 +342,7 @@ const renderIntegralPlot = (type, compiled, bounds) => {
                 colorscale: "Magma",
                 showscale: true
             }], {
-                title: "Integrando sobre la región",
+                title: "Integrando sobre la region",
                 paper_bgcolor: "rgba(0,0,0,0)",
                 plot_bgcolor: "rgba(0,0,0,0)"
             }, { responsive: true });
@@ -315,7 +394,7 @@ const approximateIntegral = () => {
             ? approximateDoubleIntegral(compiled, bounds, subdivisions)
             : approximateTripleIntegral(compiled, bounds, subdivisions);
 
-        document.getElementById("integral-output").textContent = `˜ ${formatNumber(result, 6)}`;
+        document.getElementById("integral-output").textContent = `â‰ˆ ${formatNumber(result, 6)}`;
         renderIntegralPlot(type, compiled, bounds);
     } catch (error) {
         document.getElementById("integral-output").textContent = "No se pudo evaluar la integral.";
@@ -325,7 +404,7 @@ const approximateIntegral = () => {
 
 integralButton.addEventListener("click", approximateIntegral);
 
-// Optimización con restricciones --------------------------------------------
+// Optimizacion con restricciones --------------------------------------------
 const optimizeButton = document.getElementById("optimize-btn");
 
 const gaussianSolve = (matrix, vector) => {
@@ -383,7 +462,7 @@ const newtonSystem = (fn, initialGuess, maxIterations = 30, tolerance = 1e-6) =>
         const delta = gaussianSolve(J, F.map((value) => -value));
         vars = vars.map((value, idx) => value + delta[idx]);
     }
-    throw new Error("Newton no convergió");
+    throw new Error("Newton no convergio");
 };
 
 const solveLagrange = ({ objective, constraint, constant, initial }) => {
@@ -455,19 +534,19 @@ const renderOptimizationPlot = (objective, constraint, constant, solution) => {
                 y: [solution.y],
                 mode: "markers",
                 marker: { size: 12, color: "#22d3ee" },
-                name: "Óptimo"
+                name: "Optimo"
             });
         }
 
         Plotly.newPlot("plot-optimization", data, {
-            title: "Nivel de f(x, y) y restricción",
+            title: "Nivel de f(x, y) y restriccion",
             paper_bgcolor: "rgba(0,0,0,0)",
             plot_bgcolor: "rgba(0,0,0,0)",
             xaxis: { title: "x" },
             yaxis: { title: "y" }
         }, { responsive: true });
     } catch (error) {
-        console.error("No se pudo graficar la optimización", error);
+        console.error("No se pudo graficar la optimizacion", error);
     }
 };
 
@@ -487,10 +566,10 @@ const runOptimization = () => {
         document.getElementById("optimum-value-output").textContent = formatNumber(solution.value);
         renderOptimizationPlot(objective, constraint, constant, solution);
     } catch (error) {
-        document.getElementById("optimum-output").textContent = "No convergió";
+        document.getElementById("optimum-output").textContent = "No convergio";
         document.getElementById("lambda-output").textContent = "-";
         document.getElementById("optimum-value-output").textContent = "-";
-        alert("El método de Newton no convergió. Intenta con otros valores iniciales.");
+        alert("El metodo de Newton no convergio. Intenta con otros valores iniciales.");
         console.error(error);
         renderOptimizationPlot(objective, constraint, constant, null);
     }
@@ -498,7 +577,8 @@ const runOptimization = () => {
 
 optimizeButton.addEventListener("click", runOptimization);
 
-// Inicialización -------------------------------------------------------------
+// Inicializacion -------------------------------------------------------------
+setupMathKeyboard();
 plotFunction();
 showDerivatives();
 renderOptimizationPlot(
