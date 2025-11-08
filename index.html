@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cálculo Multivariable Toolkit</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#38bdf8',
+                        dark: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-100">
+    <main>
+        <header class="glass-card mb-6 text-center">
+            <p class="badge justify-center mb-3">Proyecto · Cálculo Multivariable</p>
+            <h1 class="text-3xl font-bold mb-2">Laboratorio interactivo de funciones multivariables</h1>
+            <p class="text-slate-300 max-w-3xl mx-auto">
+                Ingresa funciones como <code>f(x, y) = x^2 + y^2</code> o <code>f(x, y, z) = sin(x) * cos(y) + z</code> y explora su comportamiento. Todas las operaciones usan <strong>math.js</strong> y las visualizaciones se renderizan con <strong>Plotly</strong>.
+            </p>
+        </header>
+
+        <nav class="glass-card mb-6 flex flex-wrap gap-3 justify-center" role="tablist">
+            <button class="tab-button px-5 py-2" data-target="visual" aria-selected="true">Visualización</button>
+            <button class="tab-button px-5 py-2" data-target="derivatives">Derivadas y Gradiente</button>
+            <button class="tab-button px-5 py-2" data-target="integrals">Integrales múltiples</button>
+            <button class="tab-button px-5 py-2" data-target="optimization">Optimización con restricciones</button>
+        </nav>
+
+        <section id="visual" class="glass-card space-y-6" role="tabpanel">
+            <div>
+                <h2 class="section-title">Visualización de funciones</h2>
+                <p class="text-slate-300 text-sm">Ejemplos sugeridos: <code>x^2 + y^2</code>, <code>sin(x) * cos(y)</code>, <code>exp(-x^2 - y^2)</code>, <code>x*y + z</code>.</p>
+            </div>
+
+            <div class="grid-form">
+                <div>
+                    <label for="function-input">Función f(x, y, z opcional)</label>
+                    <textarea id="function-input">x^2 + y^2</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="x-min">x min</label>
+                        <input id="x-min" type="number" value="-5" step="0.5" />
+                    </div>
+                    <div>
+                        <label for="x-max">x max</label>
+                        <input id="x-max" type="number" value="5" step="0.5" />
+                    </div>
+                    <div>
+                        <label for="y-min">y min</label>
+                        <input id="y-min" type="number" value="-5" step="0.5" />
+                    </div>
+                    <div>
+                        <label for="y-max">y max</label>
+                        <input id="y-max" type="number" value="5" step="0.5" />
+                    </div>
+                    <div>
+                        <label for="z-param">Valor fijo de z (si aplica)</label>
+                        <input id="z-param" type="number" value="0" step="0.5" />
+                    </div>
+                    <div>
+                        <label for="resolution">Resolución de malla</label>
+                        <input id="resolution" type="number" value="35" min="10" max="80" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="plot-btn">Graficar</button>
+                <button id="random-example-btn">Ejemplo aleatorio</button>
+            </div>
+
+            <div id="plot-visual"></div>
+
+            <div class="results-panel text-sm space-y-2">
+                <div><strong>Dominio estimado:</strong> <span id="domain-output">-</span></div>
+                <div><strong>Rango estimado:</strong> <span id="range-output">-</span></div>
+            </div>
+        </section>
+
+        <section id="derivatives" class="glass-card space-y-6 hidden" role="tabpanel">
+            <div>
+                <h2 class="section-title">Derivadas parciales y gradiente</h2>
+                <p class="text-slate-300 text-sm">Ejemplo: <code>sin(x) * cos(y)</code>. Usa valores numéricos para el punto de evaluación.</p>
+            </div>
+
+            <div class="grid-form">
+                <div>
+                    <label for="derivative-function">Función f(x, y, z opcional)</label>
+                    <textarea id="derivative-function">sin(x) * cos(y)</textarea>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label for="point-x">x0</label>
+                        <input id="point-x" type="number" value="0" step="0.5" />
+                    </div>
+                    <div>
+                        <label for="point-y">y0</label>
+                        <input id="point-y" type="number" value="0" step="0.5" />
+                    </div>
+                    <div>
+                        <label for="point-z">z0 (si aplica)</label>
+                        <input id="point-z" type="number" value="0" step="0.5" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="derivative-btn">Calcular derivadas</button>
+            </div>
+
+            <div class="results-panel text-sm space-y-3">
+                <div>
+                    <strong>Derivadas parciales:</strong>
+                    <pre id="partials-output">-</pre>
+                </div>
+                <div>
+                    <strong>Gradiente en (x0, y0, z0):</strong>
+                    <pre id="gradient-output">-</pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="integrals" class="glass-card space-y-6 hidden" role="tabpanel">
+            <div>
+                <h2 class="section-title">Integrales dobles y triples (aproximación)</h2>
+                <p class="text-slate-300 text-sm">Introduce la función y los límites. Ejemplos: <code>x^2 + y^2</code> en [-1,1], o <code>x + y + z</code> en [0,1].</p>
+            </div>
+
+            <div class="grid-form">
+                <div>
+                    <label for="integral-function">Integrando</label>
+                    <textarea id="integral-function">x^2 + y^2</textarea>
+                </div>
+                <div>
+                    <label for="integral-type">Tipo de integral</label>
+                    <select id="integral-type">
+                        <option value="double" selected>Integral doble ? f(x, y) dA</option>
+                        <option value="triple">Integral triple ? f(x, y, z) dV</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="ix-min">x min</label>
+                        <input id="ix-min" type="number" value="-1" />
+                    </div>
+                    <div>
+                        <label for="ix-max">x max</label>
+                        <input id="ix-max" type="number" value="1" />
+                    </div>
+                    <div>
+                        <label for="iy-min">y min</label>
+                        <input id="iy-min" type="number" value="-1" />
+                    </div>
+                    <div>
+                        <label for="iy-max">y max</label>
+                        <input id="iy-max" type="number" value="1" />
+                    </div>
+                    <div>
+                        <label for="iz-min">z min (solo triple)</label>
+                        <input id="iz-min" type="number" value="0" />
+                    </div>
+                    <div>
+                        <label for="iz-max">z max (solo triple)</label>
+                        <input id="iz-max" type="number" value="1" />
+                    </div>
+                    <div>
+                        <label for="integral-resolution">Subdivisiones por eje</label>
+                        <input id="integral-resolution" type="number" value="20" min="5" max="60" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="integral-btn">Aproximar integral</button>
+            </div>
+
+            <div id="plot-integral"></div>
+
+            <div class="results-panel">
+                <strong>Resultado:</strong> <span id="integral-output">-</span>
+            </div>
+        </section>
+
+        <section id="optimization" class="glass-card space-y-6 hidden" role="tabpanel">
+            <div>
+                <h2 class="section-title">Optimización con multiplicadores de Lagrange</h2>
+                <p class="text-slate-300 text-sm">Ejemplo: maximiza <code>x^2 + y^2</code> sujeto a <code>x + y = 1</code>.</p>
+            </div>
+
+            <div class="grid-form">
+                <div>
+                    <label for="objective-input">Función objetivo f(x, y)</label>
+                    <textarea id="objective-input">x^2 + y^2</textarea>
+                </div>
+                <div>
+                    <label for="constraint-input">Restricción g(x, y)</label>
+                    <textarea id="constraint-input">x + y</textarea>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label for="constraint-value">Constante c</label>
+                        <input id="constraint-value" type="number" value="1" />
+                    </div>
+                    <div>
+                        <label for="opt-x0">x inicial</label>
+                        <input id="opt-x0" type="number" value="0.5" step="0.1" />
+                    </div>
+                    <div>
+                        <label for="opt-y0">y inicial</label>
+                        <input id="opt-y0" type="number" value="0.5" step="0.1" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="optimize-btn">Resolver sistema de Lagrange</button>
+            </div>
+
+            <div id="plot-optimization"></div>
+
+            <div class="results-panel text-sm space-y-2">
+                <div><strong>Punto óptimo estimado:</strong> <span id="optimum-output">-</span></div>
+                <div><strong>Multiplicador ?:</strong> <span id="lambda-output">-</span></div>
+                <div><strong>f(x, y) en el óptimo:</strong> <span id="optimum-value-output">-</span></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.34.0"></script>
+    <script src="app.js"></script>
+</body>
+</html>
